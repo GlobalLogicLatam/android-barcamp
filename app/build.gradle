@@ -1,0 +1,159 @@
+buildscript {
+    repositories {
+        maven { url 'https://maven.fabric.io/public' }
+    }
+
+    dependencies {
+        // The Fabric Gradle plugin uses an open ended version to react
+        // quickly to Android tooling updates
+        classpath 'io.fabric.tools:gradle:1.+'
+    }
+}
+apply plugin: 'com.android.application'
+apply plugin: 'io.fabric'
+
+repositories {
+    maven { url 'https://maven.fabric.io/public' }
+}
+
+android {
+    def globalConfiguration = rootProject.extensions.getByName("ext")
+
+    compileSdkVersion globalConfiguration.getAt("androidCompileSdkVersion")
+    buildToolsVersion globalConfiguration.getAt("androidBuildToolsVersion")
+
+    signingConfigs {
+        release {
+            storeFile file(keystoreFile)
+            storePassword keystorePassword
+            keyAlias keystoreAlias
+            keyPassword keystoreAliasPassword
+        }
+    }
+
+    defaultConfig {
+        ext.buildNumber = System.getenv("BUILD_NUMBER") ?: "debug"
+        applicationId "com.globallogic.barcamp"
+        minSdkVersion globalConfiguration.getAt("androidMinSdkVersion")
+        targetSdkVersion globalConfiguration.getAt("androidTargetSdkVersion")
+        versionCode 3
+        versionName "1.0.$buildNumber"
+        vectorDrawables.useSupportLibrary = true
+
+        // Load common properties
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('data.properties').newDataInputStream())
+
+        buildConfigField "String", "TWITTER_SECRET", "\"${properties.getProperty("twitter.secret")}\""
+        buildConfigField "String", "TWITTER_KEY", "\"${properties.getProperty("twitter.key")}\""
+        manifestPlaceholders = [crashlyticsApiKey: properties.getProperty("crashlytics.apikey"),
+                                facebookAppId    : "\"${properties.getProperty("facebook.app.id")}\""]
+    }
+
+    productFlavors {
+        dev {}
+
+        prod {}
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            applicationVariants.all {
+                variant -> appendVersionName(variant, defaultConfig, "release")
+            }
+        }
+        beta {
+            ext.betaDistributionGroupAliases = "barcamp---qa"
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.release
+            applicationVariants.all {
+                variant -> appendVersionName(variant, defaultConfig, "beta")
+            }
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            applicationVariants.all {
+                variant -> appendVersionName(variant, defaultConfig, "debug")
+            }
+        }
+    }
+
+
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+dependencies {
+    debugCompile project(path: ':data', configuration: "libraryDebug")
+    betaCompile project(path: ':data', configuration: "libraryBeta")
+    releaseCompile project(path: ':data', configuration: "libraryRelease")
+
+    def appDependencies = rootProject.ext.appDependencies
+
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+
+    compile appDependencies.support
+    compile appDependencies.appcompat
+    compile appDependencies.design
+    compile appDependencies.recyclerView
+    compile appDependencies.cardView
+    compile appDependencies.facebook
+    compile appDependencies.glide
+
+    // Scale Image library
+    compile 'com.github.chrisbanes:PhotoView:1.3.1'
+
+    compile('com.crashlytics.sdk.android:crashlytics:2.6.4@aar') {
+        transitive = true;
+    }
+
+    // Twitter
+    compile('com.twitter.sdk.android:twitter:2.0.1@aar') {
+        transitive = true;
+    }
+    compile('com.twitter.sdk.android:tweet-composer:2.0.0@aar') {
+        transitive = true;
+    }
+
+    testCompile 'junit:junit:4.12'
+    compile project(path: ':data')
+}
+
+/** Change the file name using the version name **/
+def appendVersionName(variant, defaultConfig, buildType) {
+    variant.outputs.each { output ->
+        def appName = "BarCamp"
+        def file
+        def fileName
+        if (output.zipAlign) {
+            file = output.outputFile
+            fileName = file.name.replace("app-" + buildType + ".apk",
+                    appName + "-" +
+                            defaultConfig.versionName +
+                            "-" +
+                            buildType +
+                            ".apk")
+            output.outputFile = new File(file.parent, fileName)
+        } else {
+            file = output.packageApplication.outputFile
+            fileName = file.name.replace("app-" + buildType + "-unaligned.apk",
+                    appName + "-" +
+                            defaultConfig.versionName +
+                            "-" +
+                            buildType +
+                            "-unaligned.apk")
+            output.packageApplication.outputFile = new File(file.parent, fileName)
+        }
+    }
+}
+
+apply plugin: 'com.google.gms.google-services'

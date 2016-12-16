@@ -1,0 +1,7 @@
+/build
+*.keystore
+*.properties
+
+# Firebase data
+/src/dev/google-services.json
+/src/prod/google-services.json

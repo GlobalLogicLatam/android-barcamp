@@ -1,0 +1,59 @@
+apply plugin: 'com.android.library'
+
+android {
+    def globalConfiguration = rootProject.extensions.getByName("ext")
+
+    compileSdkVersion globalConfiguration.getAt("androidCompileSdkVersion")
+    buildToolsVersion globalConfiguration.getAt("androidBuildToolsVersion")
+
+    defaultConfig {
+        minSdkVersion globalConfiguration.getAt("androidMinSdkVersion")
+        targetSdkVersion globalConfiguration.getAt("androidTargetSdkVersion")
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+
+    }
+
+    defaultPublishConfig 'release'
+    publishNonDefault true
+    productFlavors {
+        library {}
+    }
+
+    buildTypes {
+        Properties properties = new Properties()
+        properties.load(project.rootProject.file('data.properties').newDataInputStream())
+
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "FIREBASE_ROOT", properties.getProperty("firebase.root.release")
+        }
+        beta {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "FIREBASE_ROOT", properties.getProperty("firebase.root.beta")
+        }
+        debug {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            buildConfigField "String", "FIREBASE_ROOT", properties.getProperty("firebase.root.debug")
+        }
+    }
+}
+
+dependencies {
+    def dataDependencies = rootProject.ext.dataDependencies
+
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+
+    compile dataDependencies.appcompat
+    compile dataDependencies.firebaseDatabase
+    compile dataDependencies.firebaseAuth
+    compile dataDependencies.firebaseStorage
+
+    compile project(path: ':domain')
+    testCompile 'junit:junit:4.12'
+}

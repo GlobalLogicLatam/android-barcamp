@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <padding
+        android:bottom="@dimen/circular_button_padding"
+        android:left="@dimen/circular_button_padding"
+        android:right="@dimen/circular_button_padding"
+        android:top="@dimen/circular_button_padding" />
+    <gradient
+        android:angle="270"
+        android:endColor="@color/colorPrimary"
+        android:startColor="@color/colorPrimary" />
+</shape>
